@@ -24,7 +24,7 @@ func FirstServer() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Fatal(err)
+	log.Fatal(server.ListenAndServe())
 
 }
 
