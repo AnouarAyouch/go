@@ -1,22 +1,24 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 )
 
-func start() {
+func FirstServer() {
 	mux := http.NewServeMux()
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
-	if err := server.ListenAndServe(); err != nil {
-		fmt.Println(err)
+	mux.Handle("/", http.FileServer(http.Dir(".")))
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
 	}
+
 }
 
 func main() {
-	start()
+	FirstServer()
 }
-
