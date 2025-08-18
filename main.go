@@ -12,6 +12,8 @@ func FirstServer() {
 		Handler: mux,
 	}
 	mux.Handle("/", http.FileServer(http.Dir(".")))
+	mux.Handle("./", http.FileServer(http.Dir("/assets")))
+
 	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
