@@ -31,12 +31,15 @@ func StratingTheServer() {
 	err := Serv.ListenAndServe()
 	fmt.Println("Starting the server <<<>>>")
 	if err != nil {
-		log.Fatalf("can not the server : %s", err)
+		log.Fatalf("can not start the server : %s", err)
 	}
 }
+
+// the main
 func main() {
 	StratingTheServer()
 }
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
