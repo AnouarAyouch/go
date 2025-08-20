@@ -21,36 +21,30 @@ func main() {
 		Addr:    ":8080",
 		Handler: mux,
 	}
-	// Welcom to chairpy and image handler
-	mux.Handle("/", http.FileServer(http.Dir(".")))
-	mux.Handle("/assets", http.FileServer(http.Dir(".")))
-	mux.HandleFunc("/ready", handlerReadiness)
-
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			w.Header().Set("Allow", http.MethodPost)   // tells client only POST is allowed
-			w.WriteHeader(http.StatusMethodNotAllowed) // sends 405
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(http.StatusText(http.StatusOK)))
+	// ALL THE  handlers
+	fsHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir("."))))
+	mux.Handle("/app", fsHandler)
+	mux.Handle("/app/assets", func(w http.ResponseWriter, r *http.Request) {
+		apiCfg.middlewareMetricsInc(http.StripPrefix("/app/assets", http.FileServer(w, r, "./logo.png")))
 	})
 
-	// the hits
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(".")))))
-	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("/reset", apiCfg.handlerReset)
-	//mux.HandleFunc("POST /articles", handlerArticlesCreate)
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+	mux.HandleFunc("POST /api/reset", apiCfg.handlerReset)
+	mux.HandleFunc("GET /api/metrics", apiCfg.handlerMetrics)
+	//serving and listning to the server
 	err := Serv.ListenAndServe()
-
 	fmt.Println("Starting the server <<<>>>")
 	if err != nil {
 		log.Fatalf("can not start the server : %s", err)
 	}
 }
 
-// the main
-
+// themetricesfuncandhandthewrapper
+func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())))
+}
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits.Add(1)
@@ -58,27 +52,15 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	})
 }
 
+// thereadinesshandlefunc
 func handlerReadiness(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
-func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", http.MethodPost)   // tells client only POST is allowed
-		w.WriteHeader(http.StatusMethodNotAllowed) // sends 405
-		return
-	}
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())))
-}
+
+// theresethandlefunction
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", http.MethodPost)   // tells client only POST is allowed
-		w.WriteHeader(http.StatusMethodNotAllowed) // sends 405
-		return
-	}
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("hits restored to 0 "))
 }
